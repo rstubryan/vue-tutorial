@@ -1,5 +1,8 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+
+// 10
+import ChildComp from "@/components/ChildComp.vue";
 
 // 1
 const count = ref(0);
@@ -55,6 +58,42 @@ const addTodo = () => {
 const removeTodo = (todo) => {
   todos.value = todos.value.filter((t) => t !== todo);
 };
+
+// 7
+const hideCompleted = ref(false);
+const filteredTodos = computed(() => {
+  return hideCompleted.value ? todos.value.filter((t) => !t.done) : todos.value;
+});
+
+// 8
+const pElementRef = ref(null);
+onMounted(() => {
+  pElementRef.value.textContent = "mounted!";
+});
+
+// 9
+const todoId = ref(1);
+const todoData = ref(null);
+
+const fetchData = async () => {
+  todoData.value = null;
+  const res = await fetch(
+    `https://jsonplaceholder.typicode.com/todos/${todoId.value}`,
+  );
+  todoData.value = await res.json();
+};
+
+fetchData();
+watch(todoId, fetchData);
+
+// 11
+const greeting = ref("Hello from parent");
+
+// 12
+const childMsg = ref("No child msg yet");
+
+// 13
+const mesej = ref("from parent");
 </script>
 
 <template>
@@ -129,21 +168,73 @@ const removeTodo = (todo) => {
         </ul>
       </section>
       <section class="mb-3">
-        <h1 class="text-primary">List Rendering</h1>
+        <h1 class="text-primary">Computed Property</h1>
         <div class="py-2">
           <form @submit.prevent="addTodo" class="d-flex">
             <input v-model="newTodo" required placeholder="new todo" />
-            <button class="btn btn-primary rounded-0">Add Todo</button>
+            <button class="btn btn-primary d-flex m-0 rounded-0">
+              Add Todo
+            </button>
           </form>
         </div>
-        <ul>
-          <li v-for="todo in todos" :key="todo.id" class="py-2">
-            {{ todo.text }}
-            <button @click="removeTodo(todo)" class="btn btn-danger m-0 p-2">
+        <ul class="form-check py-3">
+          <li
+            v-for="todo in filteredTodos"
+            :key="todo.id"
+            class="lh-lg d-flex m-0 align-items-center gap-2"
+          >
+            <input
+              type="checkbox"
+              v-model="todo.done"
+              class="form-check-input"
+            />
+            <span :class="{ done: todo.done }">{{ todo.text }}</span>
+            <button @click="removeTodo(todo)" class="btn btn-danger p-1">
               X
             </button>
           </li>
         </ul>
+        <button @click="hideCompleted = !hideCompleted" class="btn btn-primary">
+          {{ hideCompleted ? "Show all" : "Hide completed" }}
+        </button>
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Lifecycle and Template Refs</h1>
+        <p ref="pElementRef">hello</p>
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Lifecycle and Template Refs</h1>
+        <div class="py-2">
+          <p>Todo id: {{ todoId }}</p>
+          <button
+            @click="todoId++"
+            :disabled="!todoData"
+            class="btn btn-primary"
+          >
+            Fetch next todo
+          </button>
+          <div class="py-2">
+            <p v-if="!todoData">Loading...</p>
+            <pre v-else>{{ todoData }}</pre>
+          </div>
+        </div>
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Components</h1>
+        <ChildComp />
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Props</h1>
+        <ChildComp :msg="greeting" />
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Emits</h1>
+        <ChildComp @response="(msg) => (childMsg = msg)" />
+        <p>{{ childMsg }}</p>
+      </section>
+      <section class="mb-3">
+        <h1 class="text-primary">Slots</h1>
+        <ChildComp>Message: {{ mesej }}</ChildComp>
       </section>
     </div>
   </div>
@@ -156,5 +247,9 @@ const removeTodo = (todo) => {
 
 #green {
   color: green;
+}
+
+.done {
+  text-decoration: line-through;
 }
 </style>
